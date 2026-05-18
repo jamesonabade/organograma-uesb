@@ -371,8 +371,11 @@ let chart;
   }
 
   $(function() {
+    // Detectar dispositivo móvel
+    const isMobile = window.innerWidth <= 768;
+
     // Aplicar estado inicial da sidebar
-    if (sidebarCollapsed) {
+    if (sidebarCollapsed || isMobile) {
       $('#sidebar').addClass('collapsed');
       $('#toggle-icon').removeClass('fa-chevron-left').addClass('fa-chevron-right');
     }

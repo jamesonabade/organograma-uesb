@@ -478,3 +478,58 @@
         print-color-adjust: exact !important;
       }
     }
+
+    /* Responsividade para Dispositivos Móveis */
+    @media screen and (max-width: 768px) {
+      .app-container {
+        flex-direction: column;
+      }
+      
+      .sidebar {
+        width: calc(100% - 40px);
+        position: absolute;
+        height: 100vh;
+        z-index: 1000;
+        max-width: calc(100vw - 40px);
+      }
+
+      .sidebar.collapsed {
+        width: 0;
+      }
+
+      .toggle-sidebar {
+        right: -40px;
+        width: 40px;
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+
+      .detail-overlay {
+        width: 90%;
+        right: 5%;
+        left: 5%;
+        top: 2%;
+        max-height: 95vh;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-item[style*="grid-column"] {
+        grid-column: 1 / -1 !important;
+      }
+      
+      .controls {
+        left: 10px;
+        bottom: 10px;
+        transform: scale(0.85);
+        transform-origin: bottom left;
+      }
+
+      .tutorial-card {
+        width: 95%;
+        padding: 10px;
+      }
+    }
