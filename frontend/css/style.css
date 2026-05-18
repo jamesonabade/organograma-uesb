@@ -533,3 +533,107 @@
         padding: 10px;
       }
     }
+
+    /* Tema Escuro (Dark Mode) */
+    body.dark-mode {
+      --bg-color: #0f172a;
+      --text-color: #cbd5e1;
+      --secondary-color: #f8fafc;
+    }
+
+    body.dark-mode .sidebar,
+    body.dark-mode .detail-overlay,
+    body.dark-mode .detail-body,
+    body.dark-mode .tutorial-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    body.dark-mode .sidebar-header,
+    body.dark-mode .sidebar-info,
+    body.dark-mode .detail-section {
+      border-color: #334155;
+    }
+
+    body.dark-mode .search-box input {
+      background: #0f172a;
+      border-color: #334155;
+      color: #f8fafc;
+    }
+
+    body.dark-mode .search-item {
+      border-color: #1e293b;
+    }
+
+    body.dark-mode .search-item:hover {
+      background: #334155;
+    }
+
+    body.dark-mode .search-item .item-nome {
+      color: #cbd5e1;
+    }
+
+    body.dark-mode .level-legend,
+    body.dark-mode .chart-viewport {
+      background: #0f172a;
+    }
+
+    body.dark-mode .toggle-sidebar,
+    body.dark-mode .control-btn {
+      background: #1e293b;
+      border-color: #334155;
+      color: #cbd5e1;
+    }
+
+    body.dark-mode .control-btn:hover,
+    body.dark-mode .toggle-sidebar:hover {
+      background: #334155;
+      color: var(--primary-color);
+    }
+
+    body.dark-mode .control-btn.active {
+      background: var(--primary-color);
+      color: #fff;
+      border-color: var(--primary-color);
+    }
+
+    body.dark-mode .detail-section:nth-child(even) {
+      background: #1e293b;
+    }
+
+    body.dark-mode .detail-value {
+      color: #f8fafc;
+    }
+
+    body.dark-mode .detail-label {
+      color: #94a3b8;
+    }
+
+    body.dark-mode .node-card {
+      background-color: #1e293b !important;
+      border-color: #334155 !important;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+    }
+
+    body.dark-mode .node-name {
+      color: #f8fafc !important;
+    }
+
+    body.dark-mode .node-text {
+      fill: #f8fafc !important;
+    }
+
+    body.dark-mode .link {
+      stroke: #334155 !important;
+    }
+
+    body.dark-mode .radial-bg circle {
+      stroke: #334155 !important;
+    }
+    
+    body.dark-mode [style*="background: #f8f9fa"], 
+    body.dark-mode [style*="background: white"],
+    body.dark-mode [style*="background: #fff"] {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+    }

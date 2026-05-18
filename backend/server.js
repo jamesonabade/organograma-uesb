@@ -138,104 +138,157 @@ app.get('/api/unidades', async (req, res) => {
   try {
     let rawData = [];
 
-    if (process.env.DATA_SOURCE === 'api') {
-      logger.debug('DATA_SOURCE definido como "api". Iniciando fluxo de autenticação OAuth2.');
-      
-      const authUrl = process.env.API_AUTH_URL || 'https://autenticacao.sigdev.uesb.br/authz-server/oauth/token';
-      const params = new URLSearchParams();
-      params.append('client_id', process.env.API_CLIENT_ID);
-      params.append('client_secret', process.env.API_CLIENT_SECRET);
-      params.append('grant_type', 'client_credentials');
-
-      const tokenRes = await fetch(authUrl, { method: 'POST', body: params });
-      const tokenData = await tokenRes.json();
-
-      if (!tokenRes.ok || !tokenData.access_token) {
-        if (tokenData.error === 'invalid_client') {
-          throw new Error(`🔑 Credenciais Inválidas! O servidor negou o acesso. Verifique as variáveis 'API_CLIENT_ID' e 'API_CLIENT_SECRET' no seu arquivo .env. Detalhes: ${tokenData.error_description || JSON.stringify(tokenData)}`);
-        }
-        throw new Error(`Falha ao obter token da API. Status: ${tokenRes.status}. Resposta: ${JSON.stringify(tokenData)}`);
-      }
-      logger.debug('Access token obtido com sucesso.');
-
-      // 2. Consumir API de Unidades com Paginação
-      let offset = 0;
-      const limit = 100;
-      let allApiData = [];
-      const apiBaseUrl = process.env.API_BASE_URL || 'https://api.sigdev.uesb.br/unidade/v1/unidades';
-
-      logger.info(`Iniciando paginação na API. Base URL: ${apiBaseUrl}`);
-
-      while (true) {
-        logger.debug(`Buscando lote de ${limit} registros a partir do offset ${offset}...`);
-        const apiUrl = `${apiBaseUrl}?ativa=true&limit=${limit}&offset=${offset}`;
-        const apiRes = await fetch(apiUrl, {
-          headers: {
-            'Authorization': 'Bearer ' + tokenData.access_token,
-            'x-api-key': process.env.API_KEY
-          }
-        });
-        const apiData = await apiRes.json();
-
-        if (!Array.isArray(apiData)) {
-          if (apiData.httpCode) {
-            logger.warn(`Aviso ou limite retornado pela API no offset ${offset}: ${apiData.mensagem}`);
-            break; // Parar se vier um erro da API (como limite excedido)
-          }
-          throw new Error('Formato de resposta da API inválido ou inesperado');
-        }
-
-        if (apiData.length === 0) {
-          logger.debug(`Nenhum registro encontrado no offset ${offset}. Paginação concluída.`);
-          break; // Sem mais dados
-        }
-
-        allApiData = allApiData.concat(apiData);
-        offset += limit;
-      }
-
-      logger.info(`Total de ${allApiData.length} registros capturados na API.`);
-
-      // 3. Normalizar dados da API para o formato esperado pelo Frontend
-      rawData = allApiData.map(item => ({
-        id_unidade: item['id-unidade'],
-        nome: item['nome-unidade'],
-        sigla: item['sigla'],
-        id_unid_resp_org: item['id-unidade-responsavel-organizacional'],
-        codigo_unidade: item['codigo-unidade'],
-        unidade_responsavel: item['id-unidade-gestora'],
-        id_gestora_academica: item['id-unidade-gestora-academica'],
-        categoria: item['id-classificacao-unidade'],
-        visivel_apos_desativacao: item['visivel-apos-desativacao'],
-        id_campus: item['id-municipio'],
-        ativo: item['ativo'],
-        organizacional: !!item['id-nivel-organizacional'],
-        unidade_orcamentaria: item['orcamentaria'],
-        patrimonial: item['unidade-patrimonial'],
-        academica: item['academica'],
-        data_inicio_vigencia: item['data-criacao']
-      }));
-
-      // 4. Ordena por sigla/nome (Filtro 'ativo' removido para delegar controle ao frontend)
-      rawData.sort((a, b) => {
-        const siglaA = a.sigla || '';
-        const siglaB = b.sigla || '';
-        if (siglaA !== siglaB) return siglaA.localeCompare(siglaB);
-        const nomeA = a.nome || '';
-        const nomeB = b.nome || '';
-        return nomeA.localeCompare(nomeB);
-      });
-
-    } else {
-      logger.debug('DATA_SOURCE definido como "db". Conectando diretamente ao banco PostgreSQL.');
-      // Conexão direta com Banco de Dados (Sem filtro fixo de ativo=true)
+    const fetchFromDB = async () => {
+      logger.debug('Conectando diretamente ao banco PostgreSQL como fonte de dados.');
       const result = await pool.query(`
-        SELECT *
-        FROM comum.unidade
-        ORDER BY sigla, nome
+        SELECT u.*, 
+               c.descricao as nome_categoria,
+               t.descricao as nome_tipo
+        FROM comum.unidade u
+        LEFT JOIN comum.classificacao_unidade c ON u.id_classificacao_unidade = c.id_classificacao_unidade
+        LEFT JOIN comum.tipo_unidade t ON u.id_tipo_unidade = t.id_tipo_unidade
+        ORDER BY u.sigla, u.nome
       `);
-      rawData = result.rows;
+      
+      // Substituir os IDs pelos nomes descritivos, mantendo o ID como fallback
+      rawData = result.rows.map(row => {
+        row.categoria = row.nome_categoria || row.id_classificacao_unidade;
+        row.tipo = row.nome_tipo || row.id_tipo_unidade;
+        return row;
+      });
       logger.info(`Total de ${rawData.length} registros obtidos do banco de dados.`);
+    };
+
+    if (process.env.DATA_SOURCE === 'api') {
+      try {
+        logger.debug('DATA_SOURCE definido como "api". Iniciando fluxo de autenticação OAuth2.');
+        
+        const authUrl = process.env.API_AUTH_URL || 'https://autenticacao.sigdev.uesb.br/authz-server/oauth/token';
+        const params = new URLSearchParams();
+        params.append('client_id', process.env.API_CLIENT_ID);
+        params.append('client_secret', process.env.API_CLIENT_SECRET);
+        params.append('grant_type', 'client_credentials');
+
+        const tokenRes = await fetch(authUrl, { method: 'POST', body: params });
+        const tokenData = await tokenRes.json();
+
+        if (!tokenRes.ok || !tokenData.access_token) {
+          if (tokenData.error === 'invalid_client') {
+            throw new Error(`🔑 Credenciais Inválidas! O servidor negou o acesso. Detalhes: ${tokenData.error_description || JSON.stringify(tokenData)}`);
+          }
+          throw new Error(`Falha ao obter token da API. Status: ${tokenRes.status}. Resposta: ${JSON.stringify(tokenData)}`);
+        }
+        logger.debug('Access token obtido com sucesso.');
+
+        // 2. Consumir API de Unidades com Paginação
+        let offset = 0;
+        const limit = 100;
+        let allApiData = [];
+        const apiBaseUrl = process.env.API_BASE_URL || 'https://api.sigdev.uesb.br/unidade/v1/unidades';
+        const apiBaseNoSubpath = apiBaseUrl.replace('/unidades', '');
+
+        // 2.5 Buscar descrições adicionais (Classificações e Tipos) para enriquecer o painel
+        let classificacaoMap = {};
+        try {
+          const classRes = await fetch(apiBaseNoSubpath + '/classificacoes-unidades', {
+            headers: { 'Authorization': 'Bearer ' + tokenData.access_token, 'x-api-key': process.env.API_KEY }
+          });
+          if (classRes.ok) {
+            const classData = await classRes.json();
+            if (Array.isArray(classData)) {
+              classData.forEach(c => classificacaoMap[c['id-classificacao-unidade']] = c.descricao);
+            }
+          }
+        } catch (e) {
+          logger.warn(`Falha não-crítica ao buscar /classificacoes-unidades: ${e.message}`);
+        }
+
+        let tipoMap = {};
+        try {
+          const tipoRes = await fetch(apiBaseNoSubpath + '/tipos-unidades', {
+            headers: { 'Authorization': 'Bearer ' + tokenData.access_token, 'x-api-key': process.env.API_KEY }
+          });
+          if (tipoRes.ok) {
+            const tipoData = await tipoRes.json();
+            if (Array.isArray(tipoData)) {
+              tipoData.forEach(t => tipoMap[t['id-tipo-unidade']] = t.descricao || t.nome);
+            }
+          }
+        } catch (e) {
+          logger.warn(`Falha não-crítica ao buscar /tipos-unidades: ${e.message}`);
+        }
+
+        logger.info(`Iniciando paginação na API. Base URL: ${apiBaseUrl}`);
+
+        while (true) {
+          logger.debug(`Buscando lote de ${limit} registros a partir do offset ${offset}...`);
+          const apiUrl = `${apiBaseUrl}?ativa=true&limit=${limit}&offset=${offset}`;
+          const apiRes = await fetch(apiUrl, {
+            headers: {
+              'Authorization': 'Bearer ' + tokenData.access_token,
+              'x-api-key': process.env.API_KEY
+            }
+          });
+          const apiData = await apiRes.json();
+
+          if (!Array.isArray(apiData)) {
+            if (apiData.httpCode) {
+              logger.warn(`Aviso ou limite retornado pela API no offset ${offset}: ${apiData.mensagem}`);
+              break; // Parar se vier um erro da API (como limite excedido)
+            }
+            throw new Error('Formato de resposta da API inválido ou inesperado');
+          }
+
+          if (apiData.length === 0) {
+            logger.debug(`Nenhum registro encontrado no offset ${offset}. Paginação concluída.`);
+            break; // Sem mais dados
+          }
+
+          allApiData = allApiData.concat(apiData);
+          offset += limit;
+        }
+
+        logger.info(`Total de ${allApiData.length} registros capturados na API.`);
+
+        // 3. Normalizar dados da API para o formato esperado pelo Frontend
+        rawData = allApiData.map(item => ({
+          id_unidade: item['id-unidade'],
+          nome: item['nome-unidade'],
+          sigla: item['sigla'],
+          id_unid_resp_org: item['id-unidade-responsavel-organizacional'],
+          codigo_unidade: item['codigo-unidade'],
+          unidade_responsavel: item['id-unidade-gestora'],
+          id_gestora_academica: item['id-unidade-gestora-academica'],
+          // Enriquecendo ID com a string descritiva caso exista no Map
+          categoria: classificacaoMap[item['id-classificacao-unidade']] || item['id-classificacao-unidade'],
+          tipo: tipoMap[item['id-tipo-unidade']] || item['id-tipo-unidade'],
+          visivel_apos_desativacao: item['visivel-apos-desativacao'],
+          id_campus: item['id-municipio'],
+          ativo: item['ativo'],
+          organizacional: !!item['id-nivel-organizacional'],
+          unidade_orcamentaria: item['orcamentaria'],
+          patrimonial: item['unidade-patrimonial'],
+          academica: item['academica'],
+          data_inicio_vigencia: item['data-criacao']
+        }));
+
+        // 4. Ordena por sigla/nome (Filtro 'ativo' removido para delegar controle ao frontend)
+        rawData.sort((a, b) => {
+          const siglaA = a.sigla || '';
+          const siglaB = b.sigla || '';
+          if (siglaA !== siglaB) return siglaA.localeCompare(siglaB);
+          const nomeA = a.nome || '';
+          const nomeB = b.nome || '';
+          return nomeA.localeCompare(nomeB);
+        });
+
+      } catch (apiError) {
+        logger.error(`[FALLBACK ATIVADO] Falha ao obter dados da API: ${apiError.message}`);
+        logger.info('Tentando buscar dados diretamente do Banco de Dados PostgreSQL como fallback...');
+        await fetchFromDB();
+      }
+    } else {
+      await fetchFromDB();
     }
 
     // Para evitar nós artificiais no topo, vamos detectar a "Raiz Principal" do banco (aquela com mais conexões)

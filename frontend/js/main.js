@@ -162,6 +162,23 @@ let chart;
   }
 
   let isExpanded = false; // Estado para os botões Expandir/Recolher
+  let isDarkMode = localStorage.getItem('uesb_dark_mode') === 'true';
+
+  function applyTheme() {
+    if (isDarkMode) {
+      document.body.classList.add('dark-mode');
+      $('#theme-toggle i').removeClass('fa-moon').addClass('fa-sun');
+    } else {
+      document.body.classList.remove('dark-mode');
+      $('#theme-toggle i').removeClass('fa-sun').addClass('fa-moon');
+    }
+  }
+
+  function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('uesb_dark_mode', isDarkMode);
+    applyTheme();
+  }
 
   function toggleExpand(expand) {
     if (!chart) return;
@@ -171,11 +188,11 @@ let chart;
     const btnCollapse = document.getElementById('btn-collapse');
     
     if (expand) {
-      chart.expandAll().render();
+      chart.expandAll().render().fit();
       btnExpand.classList.add('active');
       btnCollapse.classList.remove('active');
     } else {
-      chart.collapseAll().render();
+      chart.collapseAll().render().fit();
       btnCollapse.classList.add('active');
       btnExpand.classList.remove('active');
     }
@@ -374,6 +391,8 @@ let chart;
     // Detectar dispositivo móvel
     const isMobile = window.innerWidth <= 768;
 
+    applyTheme(); // Inicializa o tema escuro se estiver salvo
+
     // Aplicar estado inicial da sidebar
     if (sidebarCollapsed || isMobile) {
       $('#sidebar').addClass('collapsed');
@@ -468,7 +487,7 @@ let chart;
                     <span>${d.data.sigla || '---'}</span>
                     <span style="opacity: 0.5; font-size: 9px;">#${d.data.id}</span>
                   </div>
-                  <div style="color: #2c3e50; font-size: 13px; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                  <div class="node-name" style="color: #2c3e50; font-size: 13px; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                     ${d.data.name}
                   </div>
                 </div>
@@ -546,6 +565,7 @@ let chart;
 
             $('#field-codigo_unidade').text(info.codigo_unidade || '---');
             $('#field-categoria').text(info.categoria || '---');
+            $('#field-tipo').text(info.tipo || '---');
             $('#field-data_inicio_vigencia').text(formatValue(info.data_inicio_vigencia, 'date'));
             $('#field-data_fim_vigencia').text(formatValue(info.data_fim_vigencia, 'date'));
             $('#field-visivel_apos_desativacao').html(formatValue(info.visivel_apos_desativacao));
