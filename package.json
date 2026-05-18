@@ -1,0 +1,24 @@
+{
+  "name": "arvore-unidades",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "morgan": "^1.10.1",
+    "node-cache": "^5.1.2",
+    "pg": "^8.20.0",
+    "winston": "^3.19.0"
+  }
+}

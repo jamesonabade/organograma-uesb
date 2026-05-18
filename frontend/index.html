@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Organograma UESB</title>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- Font Awesome (CDN mais confiável) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- D3.js and D3 Org Chart -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-org-chart@3.1.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-flextree@2.1.2/build/d3-flextree.js"></script>
+
+  <!-- Bibliotecas para exportação direta em PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-container">
+  <div id="sidebar" class="sidebar">
+    <div class="toggle-sidebar" onclick="toggleSidebar()">
+      <i id="toggle-icon" class="fas fa-chevron-left"></i>
+    </div>
+    <div class="sidebar-header">
+      <h2><i class="fas fa-project-diagram"></i> Organograma UESB</h2>
+      <p style="font-size: 0.85rem; color: #666; margin: 5px 0 0 0;">Hierarquia vertical das unidades</p>
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="search-input" placeholder="Buscar unidade ou sigla...">
+      </div>
+      
+      <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 10px;">
+          <button id="btn-expand" onclick="toggleExpand(true)" class="control-btn" style="flex: 1; height: 35px; font-size: 0.75rem; gap: 5px;">
+            <i class="fas fa-expand-arrows-alt"></i> Expandir
+          </button>
+          <button id="btn-collapse" onclick="toggleExpand(false)" class="control-btn" style="flex: 1; height: 35px; font-size: 0.75rem; gap: 5px;">
+            <i class="fas fa-compress-arrows-alt"></i> Recolher
+          </button>
+        </div>
+
+        <!-- SELETOR DE TIPO DE VISUALIZAÇÃO -->
+        <div style="display: flex; flex-direction: column; gap: 8px; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
+          <span style="font-size: 0.75rem; font-weight: 700; color: #7f8c8d; text-transform: uppercase; display: flex; align-items: center; gap: 5px;">
+            <i class="fas fa-project-diagram"></i> Tipo de Visualização
+          </span>
+          <div style="display: flex; gap: 5px;">
+            <button onclick="changeVisualization('tree')" id="viz-tree" class="control-btn" style="flex: 1; height: 35px; font-size: 0.75rem; gap: 5px;" title="Hierarquia em Árvore">
+              <i class="fas fa-sitemap"></i> Árvore
+            </button>
+            <button onclick="changeVisualization('radial')" id="viz-radial" class="control-btn" style="flex: 1; height: 35px; font-size: 0.75rem; gap: 5px;" title="Hierarquia Radial (Circular)">
+              <i class="fas fa-circle-notch"></i> Radial
+            </button>
+          </div>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 8px; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
+          <span style="font-size: 0.75rem; font-weight: 700; color: #7f8c8d; text-transform: uppercase; display: flex; align-items: center; gap: 5px;">
+            <i class="fas fa-layer-group"></i> Estilo de Exibição
+          </span>
+          <div style="display: flex; gap: 5px;">
+            <button onclick="changeCompact(true)" id="mode-compact" class="control-btn" style="flex: 1; height: 35px; font-size: 0.75rem; gap: 5px;" title="Filhos em lista vertical">
+              <i class="fas fa-list-ul"></i> Compacto
+            </button>
+            <button onclick="changeCompact(false)" id="mode-expanded" class="control-btn" style="flex: 1; height: 35px; font-size: 0.75rem; gap: 5px;" title="Filhos lado a lado">
+              <i class="fas fa-columns"></i> Espaçado
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
+          <span style="font-size: 0.75rem; font-weight: 700; color: #7f8c8d; text-transform: uppercase; display: flex; align-items: center; gap: 5px;">
+            <i class="fas fa-compass"></i> Orientação
+          </span>
+          <div style="display: flex; gap: 5px;">
+            <button onclick="changeLayout('top')" id="layout-top" class="control-btn" style="flex: 1; height: 35px;" title="Cima para Baixo"><i class="fas fa-arrow-down"></i></button>
+            <button onclick="changeLayout('bottom')" id="layout-bottom" class="control-btn" style="flex: 1; height: 35px;" title="Baixo para Cima"><i class="fas fa-arrow-up"></i></button>
+            <button onclick="changeLayout('left')" id="layout-left" class="control-btn" style="flex: 1; height: 35px;" title="Esquerda para Direita"><i class="fas fa-arrow-right"></i></button>
+            <button onclick="changeLayout('right')" id="layout-right" class="control-btn" style="flex: 1; height: 35px;" title="Direita para Esquerda"><i class="fas fa-arrow-left"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="search-results" class="search-results"></div>
+
+    <div id="sidebar-info" class="sidebar-info">
+      <div id="legend" class="level-legend"></div>
+      <p style="margin-top: 20px;"><i class="fas fa-info-circle"></i> <b>Dicas:</b></p>
+      <ul style="padding-left: 20px; margin-top: 10px;">
+        <li>Use o <b>scroll do mouse</b> para zoom.</li>
+        <li><b>Arraste</b> para mover o organograma.</li>
+        <li>Clique em uma <b>unidade</b> para ver detalhes.</li>
+      </ul>
+      <button onclick="$('#tutorial').css('display', 'flex')" class="tutorial-btn" style="margin-top: 15px; padding: 10px; font-size: 0.8rem; border-radius: 6px;">
+        <i class="fas fa-question-circle"></i> Ver Tutorial Novamente
+      </button>
+    </div>
+  </div>
+
+  <div class="chart-viewport">
+    <div id="loading" class="loading-overlay">
+      <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i> Carregando organograma...
+    </div>
+    
+    <div id="chart-container"></div>
+    <div id="radial-container" style="width: 100%; height: 100%; display: none;"></div>
+
+    <div class="controls">
+      <div class="control-btn" onclick="chart.zoomIn()" title="Aumentar Zoom"><i class="fas fa-plus"></i></div>
+      <div class="control-btn" onclick="chart.zoomOut()" title="Diminuir Zoom"><i class="fas fa-minus"></i></div>
+      <div class="control-btn" onclick="chart.fit()" title="Ajustar à Tela"><i class="fas fa-expand"></i></div>
+      <div class="control-btn" onclick="downloadPdf()" title="Exportar PDF"><i class="fas fa-file-pdf"></i></div>
+    </div>
+
+    <div id="detail-overlay" class="detail-overlay">
+      <i class="fas fa-times close-detail" onclick="$('#detail-overlay').fadeOut()"></i>
+      <div id="det-header" class="detail-header" style="padding: 20px; color: white; position: relative;">
+        <h3 id="det-titulo" style="margin:0; font-size: 1.2rem; font-weight: 700;">Detalhes da Unidade</h3>
+      </div>
+      
+      <div class="detail-body">
+        <!-- SEÇÃO 1: INFORMAÇÕES DA UNIDADE -->
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-info-circle"></i> Informações da Unidade</div>
+          <div class="detail-grid">
+            <div class="detail-item" style="grid-column: span 2;">
+              <span class="detail-label">Nome Completo</span>
+              <span class="detail-value" id="field-nome">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Nome para Capa</span>
+              <span class="detail-value" id="field-nome_capa">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Sigla</span>
+              <span class="detail-value" id="field-sigla">-</span>
+            </div>
+            <div class="detail-item" style="grid-column: span 2;">
+              <span class="detail-label">Unidade Responsável Organizacional</span>
+              <div id="field-unid_resp_org"></div>
+            </div>
+            <div class="detail-item" style="grid-column: span 2;">
+              <span class="detail-label">Unidade Responsável Orçamentária</span>
+              <div id="field-id_gestora"></div>
+            </div>
+            <div class="detail-item" style="grid-column: span 2;">
+              <span class="detail-label">Gestora Acadêmica</span>
+              <div id="field-id_gestora_academica"></div>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Código</span>
+              <span class="detail-value" id="field-codigo_unidade">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Categoria</span>
+              <span class="detail-value" id="field-categoria">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Início Vigência</span>
+              <span class="detail-value" id="field-data_inicio_vigencia">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Fim Vigência</span>
+              <span class="detail-value" id="field-data_fim_vigencia">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Visível Após Desativação</span>
+              <span class="detail-value" id="field-visivel_apos_desativacao">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Campus</span>
+              <span class="detail-value" id="field-id_campus">-</span>
+            </div>
+            <div class="detail-item" style="grid-column: span 2;">
+              <span class="detail-label">Endereço</span>
+              <span class="detail-value" id="field-endereco">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">CEP</span>
+              <span class="detail-value" id="field-cep">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Município - UF</span>
+              <span class="detail-value" id="field-municipio">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO 2: SISTEMAS DO GOVERNO FEDERAL -->
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-university"></i> Sistemas do Governo Federal</div>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Código SIAPECAD</span>
+              <span class="detail-value" id="field-codigo_siapecad">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Código Unidade Gestora - SIAFI</span>
+              <span class="detail-value" id="field-codigo_unidade_gestora_siafi">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Código da Gestão - SIAFI</span>
+              <span class="detail-value" id="field-codigo_gestao_siafi">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Código SIORG</span>
+              <span class="detail-value" id="field-codigo_siorg">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO 3: INFORMAÇÕES DE PERMISSÕES -->
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-key"></i> Informações de Permissões</div>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Organizacional</span>
+              <span class="detail-value" id="field-organizacional">-</span>
+            </div>
+            <div class="detail-item" style="grid-column: span 2;">
+              <span class="detail-label">Unidade Responsável Organizacional</span>
+              <div id="perm-unid_resp_org"></div>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Orçamentária</span>
+              <span class="detail-value" id="field-unidade_orcamentaria_bool">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Patrimonial</span>
+              <span class="detail-value" id="field-patrimonial">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Fórmula Licitações</span>
+              <span class="detail-value" id="field-formula_licitacoes">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Acadêmica</span>
+              <span class="detail-value" id="field-academica">-</span>
+            </div>
+          </div>
+          
+          <!-- DADOS ACADÊMICOS (Subseção) -->
+          <div id="sub-academica" style="margin-top: 15px; padding: 15px; background: #fff; border: 1px dashed #ddd; border-radius: 8px; display: none;">
+            <div style="font-size: 0.7rem; font-weight: 800; color: var(--primary-color); text-transform: uppercase; margin-bottom: 10px;">Dados Acadêmicos</div>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Tipo Acadêmica</span>
+                <span class="detail-value" id="field-tipo_academica">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Sigla Acadêmica</span>
+                <span class="detail-value" id="field-sigla_academica">-</span>
+              </div>
+              <div class="detail-item" style="grid-column: span 2;">
+                <span class="detail-label">Gestora Acadêmica</span>
+                <div id="perm-id_gestora_academica"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-grid" style="margin-top: 15px;">
+            <div class="detail-item">
+              <span class="detail-label">Possui Metas Anuais</span>
+              <span class="detail-value" id="field-metas">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Unidade Protocolo Central</span>
+              <span class="detail-value" id="field-protocolizadora">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO 4: HIERARQUIA RELACIONADA -->
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-sitemap"></i> Hierarquia Relacionada</div>
+          <div class="detail-grid">
+            <div class="detail-item" style="grid-column: span 2;">
+              <span class="detail-label">Unidade Superior (Pai)</span>
+              <div id="det-superior"></div>
+            </div>
+            <div class="detail-item" style="grid-column: span 2;">
+              <span class="detail-label">Unidades Subordinadas (Filhos)</span>
+              <div id="det-subordinadas"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tutorial Modal -->
+<div id="tutorial" class="tutorial-overlay">
+  <div class="tutorial-card">
+    <div class="tutorial-header">
+      <i class="fas fa-project-diagram"></i>
+      <h2>Bem-vindo ao Organograma UESB</h2>
+    </div>
+    <div class="tutorial-content">
+      <div class="tutorial-step">
+        <div class="step-icon">1</div>
+        <div class="step-text">
+          <h4>Navegação Livre</h4>
+          <p>Clique e arraste para mover o organograma. Use o scroll do mouse para aproximar ou afastar (Zoom).</p>
+        </div>
+      </div>
+      <div class="tutorial-step">
+        <div class="step-icon">2</div>
+        <div class="step-text">
+          <h4>Detalhes da Unidade</h4>
+          <p>Clique em qualquer caixa da unidade para abrir o painel lateral com todas as informações detalhadas, incluindo contatos e localização.</p>
+        </div>
+      </div>
+      <div class="tutorial-step">
+        <div class="step-icon">3</div>
+        <div class="step-text">
+          <h4>Busca Inteligente</h4>
+          <p>Use o campo de busca na barra lateral para encontrar unidades por nome ou sigla. As unidades encontradas serão destacadas em laranja.</p>
+        </div>
+      </div>
+      <div class="tutorial-step">
+        <div class="step-icon">4</div>
+        <div class="step-text">
+          <h4>Cores por Nível</h4>
+          <p>As cores das unidades indicam seu nível hierárquico, facilitando a visualização da estrutura organizacional.</p>
+        </div>
+      </div>
+      <button class="tutorial-btn" onclick="closeTutorial()">ENTENDI, VAMOS COMEÇAR!</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+</body>
+</html>

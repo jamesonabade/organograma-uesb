@@ -1,0 +1,480 @@
+:root {
+      --primary-color: #3498db;
+      --secondary-color: #2c3e50;
+      --bg-color: #f0f2f5;
+      --text-color: #333;
+      --border-radius: 12px;
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+      width: 450px; /* Aumentado de 350px */
+      background: white;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 0 15px rgba(0,0,0,0.05);
+      z-index: 100;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      border-right: none;
+    }
+
+    .sidebar.collapsed .sidebar-header,
+    .sidebar.collapsed .search-results,
+    .sidebar.collapsed .sidebar-info {
+      display: none;
+    }
+
+    .toggle-sidebar {
+      position: absolute;
+      right: -30px;
+      top: 20px;
+      width: 30px;
+      height: 60px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-left: none;
+      border-radius: 0 8px 8px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1100; /* Aumentado para garantir visibilidade */
+      box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+      color: var(--secondary-color);
+      visibility: visible !important; /* Forçar visibilidade */
+    }
+
+    .toggle-sidebar:hover {
+      background: #f8f9fa;
+      color: var(--primary-color);
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .sidebar-header h2 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: var(--secondary-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-box {
+      margin-top: 15px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px 15px 10px 35px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #999;
+    }
+
+    /* Search Results List */
+    .search-results {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 0;
+      display: none;
+    }
+
+    .search-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      border-bottom: 1px solid #f9f9f9;
+      transition: background 0.2s;
+    }
+
+    .search-item:hover {
+      background: #f0f7ff;
+    }
+
+    .search-item .item-sigla {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--primary-color);
+      display: block;
+    }
+
+    .search-item .item-nome {
+      font-size: 0.85rem;
+      color: var(--secondary-color);
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .level-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #666;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .sidebar-info {
+      padding: 20px;
+      font-size: 0.85rem;
+      color: #7f8c8d;
+      border-top: 1px solid #eee;
+    }
+    .chart-viewport {
+      flex: 1;
+      position: relative;
+      background: #f8f9fa;
+      cursor: grab;
+    }
+
+    .chart-viewport:active {
+      cursor: grabbing;
+    }
+
+    #chart-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Floating Detail Card */
+    .detail-overlay {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      width: 550px; /* Aumentado para acomodar mais dados */
+      max-height: 90vh;
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+      padding: 0;
+      display: none;
+      z-index: 200;
+      animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      overflow: hidden;
+      flex-direction: column;
+    }
+
+    .detail-body {
+      padding: 0; /* Removido padding para usar seções zebradas se quiser */
+      overflow-y: auto;
+      flex: 1;
+      background: #fdfdfd;
+    }
+
+    .detail-section {
+      padding: 20px;
+      margin-bottom: 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .detail-section:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+    .detail-section-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--secondary-color);
+      text-transform: uppercase;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.5px;
+      border-left: 4px solid var(--primary-color);
+      padding-left: 10px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 20px;
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: #888;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .detail-value {
+      font-size: 0.9rem;
+      color: #333;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    .detail-value.boolean-true {
+      color: #27ae60;
+      font-weight: 700;
+    }
+
+    .detail-value.boolean-false {
+      color: #c0392b;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: #eee;
+      color: #666;
+      margin-right: 5px;
+    }
+
+    .close-detail {
+      position: absolute;
+      right: 15px;
+      top: 15px;
+      cursor: pointer;
+      color: rgba(255,255,255,0.8);
+      transition: all 0.2s;
+      z-index: 10;
+      font-size: 1.2rem;
+    }
+
+    .close-detail:hover {
+      color: white;
+      transform: scale(1.1);
+    }
+
+    /* Tutorial Modal */
+    .tutorial-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tutorial-card {
+      background: white;
+      width: 90%;
+      max-width: 600px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+    }
+
+    .tutorial-header {
+      background: var(--primary-color);
+      padding: 40px;
+      text-align: center;
+      color: white;
+    }
+
+    .tutorial-header i {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+
+    .tutorial-content {
+      padding: 40px;
+    }
+
+    .tutorial-step {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 25px;
+      align-items: flex-start;
+    }
+
+    .step-icon {
+      width: 40px;
+      height: 40px;
+      background: #e3f2fd;
+      color: var(--primary-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-weight: 700;
+    }
+
+    .step-text h4 {
+      margin: 0 0 5px 0;
+      color: var(--secondary-color);
+    }
+
+    .step-text p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .tutorial-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .tutorial-btn:hover {
+      background: #2980b9;
+    }
+
+    /* Custom Node Styling for D3 Org Chart */
+    .node-rect {
+      fill: #fff;
+      stroke: #eee;
+      stroke-width: 1px;
+      rx: 10;
+      ry: 10;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      font-weight: 500;
+      color: var(--secondary-color);
+    }
+
+    /* Control Buttons */
+    .controls {
+      position: absolute;
+      left: 20px;
+      bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 150;
+    }
+
+    .control-btn {
+      width: 40px;
+      height: 40px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      color: var(--secondary-color);
+      transition: all 0.2s;
+      font-size: 1rem; /* Garantir tamanho do ícone */
+    }
+
+    .control-btn.active {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .control-btn i {
+      pointer-events: none; /* Evitar que o ícone capture o clique */
+    }
+
+    /* Impressão - PDF Vetorizado */
+    @media print {
+      @page {
+        size: landscape;
+        margin: 0;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: white !important;
+      }
+      .sidebar, .controls, .detail-overlay, .toggle-sidebar, .tutorial-overlay {
+        display: none !important;
+      }
+      .app-container {
+        display: block !important;
+        width: 100vw !important;
+        height: 100vh !important;
+      }
+      .chart-viewport {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: white !important;
+      }
+      #chart-container, #radial-container {
+        width: 100%;
+        height: 100%;
+      }
+      /* Força a renderização do fundo nos elementos D3 */
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
